@@ -13,6 +13,11 @@ class User(AbstractUser):
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_VIEWER)
 
+    def save(self, *args, **kwargs):
+        if self.is_superuser and self.role == self.ROLE_VIEWER:
+            self.role = self.ROLE_SUPERADMIN
+        super().save(*args, **kwargs)
+
 
 class Project(models.Model):
     name = models.CharField(max_length=100, unique=True)
