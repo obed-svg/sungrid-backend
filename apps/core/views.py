@@ -14,10 +14,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return [IsViewer()]
         return [IsSuperAdmin()]
 
-    def perform_destroy(self, instance):
-        instance.enabled = False
-        instance.save(update_fields=["enabled", "updated_at"])
-
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("username")
@@ -29,8 +25,4 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return UserCreateSerializer
         return UserSerializer
-
-    def perform_destroy(self, instance):
-        instance.is_active = False
-        instance.save(update_fields=["is_active"])
 

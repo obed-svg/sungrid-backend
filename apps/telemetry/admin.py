@@ -5,7 +5,7 @@ from apps.telemetry.models import AnalogPoint, BinaryPoint, TelemetryRecord
 
 @admin.register(TelemetryRecord)
 class TelemetryRecordAdmin(admin.ModelAdmin):
-    list_display = ("project", "cycle_timestamp", "derived_status", "ua", "ub", "uc", "ia", "ib", "ic")
+    list_display = ("project", "cycle_timestamp", "derived_status", "ua", "ub", "uc", "ia", "ib", "ic", "p", "q")
     list_filter = ("derived_status", "project")
     readonly_fields = [field.name for field in TelemetryRecord._meta.fields]
 

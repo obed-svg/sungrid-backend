@@ -25,6 +25,8 @@ class TelemetryRecordSerializer(serializers.ModelSerializer):
             "ut",
             "freq",
             "pf",
+            "p",
+            "q",
             "breaker_close",
             "breaker_open",
         )

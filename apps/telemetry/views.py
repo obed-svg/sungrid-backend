@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
@@ -12,6 +15,8 @@ from apps.telemetry.serializers import (
     TelemetryRecordSerializer,
 )
 
+STALENESS_MINUTES = 6
+
 
 @api_view(["GET"])
 @permission_classes([IsViewer])
@@ -20,6 +25,9 @@ def latest(request, project_id):
     record = TelemetryRecord.objects.filter(project=project).order_by("-cycle_timestamp").first()
     if record is None:
         return Response({"detail": "no telemetry yet"}, status=404)
+    cutoff = timezone.now() - timedelta(minutes=STALENESS_MINUTES)
+    if record.cycle_timestamp < cutoff:
+        return Response({"detail": "stale"}, status=404)
     return Response(TelemetryRecordSerializer(record).data)
 
 

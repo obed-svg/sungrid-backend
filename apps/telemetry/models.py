@@ -21,6 +21,8 @@ class TelemetryRecord(models.Model):
     ut = models.FloatField(null=True, blank=True)
     freq = models.FloatField(null=True, blank=True)
     pf = models.FloatField(null=True, blank=True)
+    p = models.FloatField(null=True, blank=True)
+    q = models.FloatField(null=True, blank=True)
     breaker_close = models.BooleanField(null=True, blank=True)
     breaker_open = models.BooleanField(null=True, blank=True)
 
