@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    restart: unless-stopped
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: sungrid.settings.dev
+      REDIS_URL: redis://redis:6379/0
+      DB_PATH: /data/db.sqlite3
+    volumes:
+      - .:/app
+      - sqlite_data:/data
+    ports: ["8000:8000"]
+    depends_on: [redis]
+    command: daphne -b 0.0.0.0 -p 8000 sungrid.asgi:application
+
+  worker:
+    build: .
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: sungrid.settings.dev
+      REDIS_URL: redis://redis:6379/0
+      DB_PATH: /data/db.sqlite3
+    volumes:
+      - .:/app
+      - sqlite_data:/data
+    depends_on: [redis, api]
+    command: python manage.py poll_reclosers
+
+volumes:
+  sqlite_data:

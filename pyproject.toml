@@ -1,0 +1,43 @@
+[project]
+name = "sungrid-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.0,<5.2",
+    "djangorestframework>=3.15",
+    "channels>=4.1",
+    "channels-redis>=4.2",
+    "daphne>=4.1",
+    "django-axes>=6.4",
+    "redis>=5.0",
+    "python-dotenv>=1.0",
+    "asgiref>=3.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "ipython>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sungrid*", "apps*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "DJ"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "sungrid.settings.dev"
+python_files = ["test_*.py", "*_test.py"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers"
