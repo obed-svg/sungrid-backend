@@ -1,0 +1,102 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# === Virtualenvs ===
+venv/
+.venv/
+env/
+.env.local
+.env.dev
+.env.prod
+.env.*.local
+
+# === SECRETS — NEVER COMMIT ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+secrets/
+credentials/
+*.secret
+*_rsa
+*_ed25519
+*.gpg
+*.kdbx
+
+# === OpenVPN profiles & auth ===
+*.ovpn
+auth.txt
+ovpn-config/
+openvpn/auth*
+openvpn/*.key
+openvpn/*.crt
+openvpn/*.pem
+
+# === Database ===
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+db.sqlite3
+*.db
+*.db-shm
+*.db-wal
+data/
+backups/
+
+# === Django ===
+local_settings.py
+media/
+staticfiles/
+*.log
+celerybeat-schedule
+celerybeat.pid
+
+# === IDEs ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# === Docker ===
+docker-compose.override.yml
+
+# === OS ===
+.AppleDouble
+.LSOverride
+Icon
+
+# === pytest ===
+.pytest_cache/
+test-results/
+coverage.xml
+
+# === Node (if any tooling drags it in) ===
+node_modules/
+
+# === Generated ===
+*.pyc
+*.pyo
+*.pyd
