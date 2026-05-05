@@ -13,9 +13,7 @@ from apps.core.models import Project
 from apps.protocol.rwk35 import (
     AI_LABELS,
     BI_LABELS,
-    build_disable_unsolicited,
-    build_enable_unsolicited,
-    build_read_all_classes,
+    build_read_class0,
     compute_derived_status,
     extract_hot_fields,
     flush_socket_async,
@@ -40,7 +38,7 @@ async def _safe_group_send(channel_layer, group: str, message: dict):
 
 
 async def poll_device(project: Project) -> list[dict]:
-    """Async per-device poll: connect, disable unsolicited, read, enable unsolicited."""
+    """Async per-device poll: connect, read class 0."""
     reader, writer = await asyncio.wait_for(
         asyncio.open_connection(str(project.ip), project.port),
         timeout=5,
@@ -48,17 +46,11 @@ async def poll_device(project: Project) -> list[dict]:
     try:
         await flush_socket_async(reader, 0.5)
 
-        # Disable unsolicited (best-effort)
-        writer.write(build_disable_unsolicited(project.master_id, project.outstation_id))
-        await writer.drain()
-        with contextlib.suppress(TimeoutError):
-            await asyncio.wait_for(recv_solicited_async(reader, timeout=2), timeout=2)
-
-        # Read all classes (1 retry on empty)
+        # Read class 0 (1 retry on empty)
         points = []
         for attempt in range(2):
             writer.write(
-                build_read_all_classes(
+                build_read_class0(
                     project.master_id, project.outstation_id, seq=attempt + 1
                 )
             )
@@ -71,14 +63,6 @@ async def poll_device(project: Project) -> list[dict]:
                     points = pts
                     break
             await flush_socket_async(reader, 0.5)
-
-        # Enable unsolicited (best-effort)
-        writer.write(
-            build_enable_unsolicited(project.master_id, project.outstation_id, seq=3)
-        )
-        await writer.drain()
-        with contextlib.suppress(TimeoutError):
-            await asyncio.wait_for(recv_solicited_async(reader, timeout=2), timeout=2)
 
         return points
     finally:

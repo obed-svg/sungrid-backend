@@ -23,7 +23,7 @@ def crc16_dnp(data: bytes) -> int:
         for i in range(8):
             if (byte >> i) & 1:
                 reflected_byte |= 1 << (7 - i)
-        crc ^= reflected_byte << 8
+        crc ^= (reflected_byte << 8)
         for _ in range(8):
             crc = (crc << 1) ^ poly if (crc & 0x8000) else (crc << 1)
     crc &= 0xFFFF
@@ -57,42 +57,9 @@ def build_frame(src: int, dst: int, app_payload: bytes) -> bytes:
     return frame
 
 
-def build_disable_unsolicited(src: int, dst: int) -> bytes:
-    app = bytes(
-        [0xC0, 0xC0, 0x15, 0x3C, 0x02, 0x06, 0x3C, 0x03, 0x06, 0x3C, 0x04, 0x06]
-    )
-    return build_frame(src, dst, app)
-
-
-def build_read_all_classes(src: int, dst: int, seq: int) -> bytes:
+def build_read_class0(src: int, dst: int, seq: int) -> bytes:
     ctrl = 0xC0 | (seq & 0x0F)
-    app = bytes(
-        [
-            ctrl,
-            ctrl,
-            0x01,
-            0x3C,
-            0x02,
-            0x06,
-            0x3C,
-            0x03,
-            0x06,
-            0x3C,
-            0x04,
-            0x06,
-            0x3C,
-            0x01,
-            0x06,
-        ]
-    )
-    return build_frame(src, dst, app)
-
-
-def build_enable_unsolicited(src: int, dst: int, seq: int) -> bytes:
-    ctrl = 0xC0 | (seq & 0x0F)
-    app = bytes(
-        [ctrl, ctrl, 0x14, 0x3C, 0x02, 0x06, 0x3C, 0x03, 0x06, 0x3C, 0x04, 0x06]
-    )
+    app = bytes([ctrl, ctrl, 0x01, 0x3C, 0x01, 0x06])
     return build_frame(src, dst, app)
 
 
@@ -181,6 +148,8 @@ def validate_header_crc(data: bytes) -> bool:
 
 
 _update_counts: dict[int, int] = {}
+_last_values: dict[int, object] = {}
+_change_counts: dict[int, int] = {}
 
 BI_LABELS: dict[int, str] = {
     1: "Remote Enabled",
@@ -270,15 +239,21 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     flag = app[i]
                     i += 1
                     idx = start + j
+                    value = bool(flag & 0x80)
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
+                    _change_counts[idx] = _change_counts.get(idx, 0)
+                    if idx in _last_values and _last_values[idx] != value:
+                        _change_counts[idx] += 1
+                    _last_values[idx] = value
                     points.append(
                         {
                             "name": BI_LABELS.get(idx, f"Binary_{idx}"),
-                            "value": bool(flag & 0x80),
+                            "value": value,
                             "timestamp": rx_time,
                             "quality_online": bool(flag & 0x01),
                             "id": idx,
                             "count_update": _update_counts[idx],
+                            "change_count": _change_counts[idx],
                             "type": "binary",
                         }
                     )
@@ -292,6 +267,10 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     i += 5
                     idx = start + j
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
+                    _change_counts[idx] = _change_counts.get(idx, 0)
+                    if idx in _last_values and _last_values[idx] != value:
+                        _change_counts[idx] += 1
+                    _last_values[idx] = value
                     points.append(
                         {
                             "name": AI_LABELS.get(idx, f"Analog_{idx}"),
@@ -300,6 +279,7 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                             "quality_online": bool(flag & 0x01),
                             "id": idx,
                             "count_update": _update_counts[idx],
+                            "change_count": _change_counts[idx],
                             "type": "analog",
                         }
                     )
@@ -313,6 +293,10 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     i += 3
                     idx = start + j
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
+                    _change_counts[idx] = _change_counts.get(idx, 0)
+                    if idx in _last_values and _last_values[idx] != value:
+                        _change_counts[idx] += 1
+                    _last_values[idx] = value
                     points.append(
                         {
                             "name": AI_LABELS.get(idx, f"Analog_{idx}"),
@@ -321,6 +305,7 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                             "quality_online": bool(flag & 0x01),
                             "id": idx,
                             "count_update": _update_counts[idx],
+                            "change_count": _change_counts[idx],
                             "type": "analog",
                         }
                     )
@@ -343,15 +328,21 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     flag = app[i]
                     i += 1
                     idx = start + j
+                    value = bool(flag & 0x80)
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
+                    _change_counts[idx] = _change_counts.get(idx, 0)
+                    if idx in _last_values and _last_values[idx] != value:
+                        _change_counts[idx] += 1
+                    _last_values[idx] = value
                     points.append(
                         {
                             "name": BI_LABELS.get(idx, f"Binary_{idx}"),
-                            "value": bool(flag & 0x80),
+                            "value": value,
                             "timestamp": rx_time,
                             "quality_online": bool(flag & 0x01),
                             "id": idx,
                             "count_update": _update_counts[idx],
+                            "change_count": _change_counts[idx],
                             "type": "binary",
                         }
                     )
@@ -365,6 +356,10 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     i += 5
                     idx = start + j
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
+                    _change_counts[idx] = _change_counts.get(idx, 0)
+                    if idx in _last_values and _last_values[idx] != value:
+                        _change_counts[idx] += 1
+                    _last_values[idx] = value
                     points.append(
                         {
                             "name": AI_LABELS.get(idx, f"Analog_{idx}"),
@@ -373,6 +368,7 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                             "quality_online": bool(flag & 0x01),
                             "id": idx,
                             "count_update": _update_counts[idx],
+                            "change_count": _change_counts[idx],
                             "type": "analog",
                         }
                     )
@@ -386,6 +382,10 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     i += 3
                     idx = start + j
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
+                    _change_counts[idx] = _change_counts.get(idx, 0)
+                    if idx in _last_values and _last_values[idx] != value:
+                        _change_counts[idx] += 1
+                    _last_values[idx] = value
                     points.append(
                         {
                             "name": AI_LABELS.get(idx, f"Analog_{idx}"),
@@ -394,6 +394,7 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                             "quality_online": bool(flag & 0x01),
                             "id": idx,
                             "count_update": _update_counts[idx],
+                            "change_count": _change_counts[idx],
                             "type": "analog",
                         }
                     )
@@ -413,15 +414,21 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     idx = struct.unpack("<H", app[i : i + 2])[0]
                     flag = app[i + 2]
                     i += 9
+                    value = bool(flag & 0x80)
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
+                    _change_counts[idx] = _change_counts.get(idx, 0)
+                    if idx in _last_values and _last_values[idx] != value:
+                        _change_counts[idx] += 1
+                    _last_values[idx] = value
                     points.append(
                         {
                             "name": BI_LABELS.get(idx, f"Binary_{idx}"),
-                            "value": bool(flag & 0x80),
+                            "value": value,
                             "timestamp": rx_time,
                             "quality_online": bool(flag & 0x01),
                             "id": idx,
                             "count_update": _update_counts[idx],
+                            "change_count": _change_counts[idx],
                             "type": "binary",
                         }
                     )

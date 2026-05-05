@@ -4,9 +4,8 @@ from apps.protocol.rwk35 import (
     BI_LABELS,
     CLOSE_FRAME,
     TRIP_FRAME,
-    build_disable_unsolicited,
     build_frame,
-    build_read_all_classes,
+    build_read_class0,
     compute_derived_status,
     crc16_dnp,
     extract_hot_fields,
@@ -32,13 +31,8 @@ class TestFrameBuilder:
         assert frame[6:8] == b"\x02\x00"  # src=2 little-endian
         assert len(frame) >= 10
 
-    def test_build_disable_unsolicited(self):
-        frame = build_disable_unsolicited(src=2, dst=1)
-        assert frame[0:2] == b"\x05\x64"
-        assert validate_header_crc(frame)
-
-    def test_build_read_all_classes(self):
-        frame = build_read_all_classes(src=2, dst=1, seq=1)
+    def test_build_read_class0(self):
+        frame = build_read_class0(src=2, dst=1, seq=1)
         assert frame[0:2] == b"\x05\x64"
         assert validate_header_crc(frame)
 

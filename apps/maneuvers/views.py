@@ -18,7 +18,7 @@ from apps.maneuvers.serializers import ManeuverActionSerializer, ManeuverLogSeri
 from apps.protocol.rwk35 import (
     CLOSE_FRAME,
     TRIP_FRAME,
-    build_read_all_classes,
+    build_read_class0,
     compute_derived_status,
     extract_hot_fields,
     parse_response,
@@ -72,7 +72,7 @@ def _read_after_command(project: Project) -> tuple[str, dict]:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.settimeout(5)
         sock.connect((str(project.ip), project.port))
-        frame = build_read_all_classes(project.master_id, project.outstation_id, seq=1)
+        frame = build_read_class0(project.master_id, project.outstation_id, seq=1)
         sock.sendall(frame)
         rx_time = timezone.now()
         resp = recv_solicited(sock, 8)
