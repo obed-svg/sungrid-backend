@@ -89,14 +89,16 @@ class TestDerivedStatus:
         }
         assert compute_derived_status(hot) == "CLOSED"
 
-    def test_closed_voltage_mismatch(self):
+    def test_closed_voltage_mismatch_with_high_outputs(self):
         hot = {
             "ua": 7.2,
-            "ur": 1.0,
+            "ur": 2.0,
             "ub": 7.1,
-            "us": 1.0,
+            "us": 2.0,
+            "uc": 7.0,
+            "ut": 2.0,
         }
-        assert compute_derived_status(hot) == "ERROR"
+        assert compute_derived_status(hot) == "CLOSED"
 
     def test_open_low_output(self):
         hot = {
@@ -107,12 +109,12 @@ class TestDerivedStatus:
         }
         assert compute_derived_status(hot) == "OPEN"
 
-    def test_open_high_output(self):
+    def test_partial_output_is_error(self):
         hot = {
             "ua": 7.2,
             "ur": 2.0,
-            "us": 2.0,
-            "ut": 2.0,
+            "us": 0.0,
+            "ut": 0.0,
         }
         assert compute_derived_status(hot) == "ERROR"
 

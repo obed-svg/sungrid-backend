@@ -568,28 +568,36 @@ def voltages_match(hot: dict, tol: float = 0.05) -> bool:
 def compute_derived_status(hot: dict) -> str:
     """Compute derived status using ONLY voltage comparison.
 
-    CLOSED: input voltages (Ua,Ub,Uc) present and match output voltages (Ur,Us,Ut)
-    OPEN:  input voltages present but output voltages are near zero (< 1.0 kV)
-    ERROR: any other case (missing voltages, mismatch without clear open pattern)
+    CLOSED: input voltages match output voltages, OR outputs are present and > 1.0 kV
+    OPEN:  outputs are near zero (< 1.0 kV) with at least one input present
+    ERROR: only when all voltages are 0 or missing
     """
-    ua = hot.get("ua")
-    ub = hot.get("ub")
-    uc = hot.get("uc")
+    ua = hot.get("ua") or 0
+    ub = hot.get("ub") or 0
+    uc = hot.get("uc") or 0
     ur = hot.get("ur") or 0
     us = hot.get("us") or 0
     ut = hot.get("ut") or 0
 
-    # Need at least some input voltage to determine state
-    has_input = (ua is not None and ua > 1.0) or (ub is not None and ub > 1.0) or (uc is not None and uc > 1.0)
-    if not has_input:
+    # ERROR only when all voltages are 0 or missing
+    all_zero = (
+        ua <= 0.1 and ub <= 0.1 and uc <= 0.1
+        and ur <= 0.1 and us <= 0.1 and ut <= 0.1
+    )
+    if all_zero:
         return "ERROR"
 
-    # Check if outputs are near zero -> breaker is OPEN
+    # Check if outputs are present and above 1.0 kV -> CLOSED
+    outputs_present = ur > 1.0 and us > 1.0 and ut > 1.0
+    if outputs_present:
+        return "CLOSED"
+
+    # Check if outputs are near zero -> OPEN
     outputs_near_zero = ur < 1.0 and us < 1.0 and ut < 1.0
     if outputs_near_zero:
         return "OPEN"
 
-    # Check if input/output voltages match -> breaker is CLOSED
+    # Check if input/output voltages match -> CLOSED
     if voltages_match(hot):
         return "CLOSED"
 
