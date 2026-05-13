@@ -29,6 +29,8 @@ class TelemetryRecordSerializer(serializers.ModelSerializer):
             "q",
             "breaker_close",
             "breaker_open",
+            "high_gas",
+            "high_temperature",
         )
 
     def to_representation(self, instance):

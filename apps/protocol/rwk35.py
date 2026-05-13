@@ -147,10 +147,6 @@ def validate_header_crc(data: bytes) -> bool:
     return len(data) >= 10 and crc16_dnp(data[:8]) == struct.unpack("<H", data[8:10])[0]
 
 
-_update_counts: dict[int, int] = {}
-_last_values: dict[int, object] = {}
-_change_counts: dict[int, int] = {}
-
 BI_LABELS: dict[int, str] = {
     1: "Remote Enabled",
     2: "Start action",
@@ -180,6 +176,8 @@ BI_LABELS: dict[int, str] = {
     26: "Low frequency",
     27: "High frequency",
     28: "Frequency slip",
+    29: "High gas",
+    30: "High temperature",
 }
 
 AI_LABELS: dict[int, str] = {
@@ -214,6 +212,11 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
     func = app[2]
     if func not in (0x81, 0x82):
         return []
+
+    # Per-call state to avoid cross-device contamination
+    _update_counts: dict[int, int] = {}
+    _last_values: dict[int, object] = {}
+    _change_counts: dict[int, int] = {}
 
     points: list[dict] = []
     i = 5
@@ -532,6 +535,8 @@ AI_HOT_MAP: dict[str, str | None] = {
 BI_HOT_MAP: dict[str, str | None] = {
     "Breaker close": "breaker_close",
     "Breaker open": "breaker_open",
+    "High gas": "high_gas",
+    "High temperature": "high_temperature",
 }
 
 
@@ -553,12 +558,16 @@ def extract_hot_fields(points: list[dict]) -> dict[str, float | bool | None]:
 
 
 def voltages_match(hot: dict, tol: float = 0.05) -> bool:
-    """Check if input and output voltages match within tolerance."""
+    """Check if input and output voltages match within tolerance.
+
+    Only compares phases where input voltage is clearly present (> 4 kV).
+    """
+    voltage_threshold_low = 4.0
     pairs = [("ua", "ur"), ("ub", "us"), ("uc", "ut")]
     for i_key, o_key in pairs:
         vi = hot.get(i_key)
         vo = hot.get(o_key)
-        if vi is None or vo is None or vi <= 0.1:
+        if vi is None or vo is None or vi <= voltage_threshold_low:
             continue
         if abs(vi - vo) > tol * abs(vi):
             return False
@@ -566,11 +575,12 @@ def voltages_match(hot: dict, tol: float = 0.05) -> bool:
 
 
 def compute_derived_status(hot: dict) -> str:
-    """Compute derived status using ONLY voltage comparison.
+    """Compute derived status based solely on voltages.
 
-    CLOSED: input voltages match output voltages, OR outputs are present and > 1.0 kV
-    OPEN:  outputs are near zero (< 1.0 kV) with at least one input present
-    ERROR: only when all voltages are 0 or missing
+    CLOSED: all output voltages >= 6 kV (energized)
+    OPEN:   all output voltages < 4 kV (de-energized) with input present
+    ERROR:  all voltages near zero, or outputs in the 4-6 kV gap,
+            or ambiguous/partial states
     """
     ua = hot.get("ua") or 0
     ub = hot.get("ub") or 0
@@ -579,7 +589,15 @@ def compute_derived_status(hot: dict) -> str:
     us = hot.get("us") or 0
     ut = hot.get("ut") or 0
 
-    # ERROR only when all voltages are 0 or missing
+    # Thresholds in kV (device reports voltages in kV)
+    voltage_threshold_low = 4.0   # Below this = de-energized / OPEN
+    voltage_threshold_high = 6.0  # Above this = energized / CLOSED
+
+    has_input = ua > voltage_threshold_low or ub > voltage_threshold_low or uc > voltage_threshold_low
+    outputs_energized = ur >= voltage_threshold_high and us >= voltage_threshold_high and ut >= voltage_threshold_high
+    outputs_de_energized = ur < voltage_threshold_low and us < voltage_threshold_low and ut < voltage_threshold_low
+
+    # ERROR when all voltages are missing or extremely low (<= 0.1 kV = 100V)
     all_zero = (
         ua <= 0.1 and ub <= 0.1 and uc <= 0.1
         and ur <= 0.1 and us <= 0.1 and ut <= 0.1
@@ -587,18 +605,17 @@ def compute_derived_status(hot: dict) -> str:
     if all_zero:
         return "ERROR"
 
-    # Check if outputs are present and above 1.0 kV -> CLOSED
-    outputs_present = ur > 1.0 and us > 1.0 and ut > 1.0
-    if outputs_present:
+    # Physical state: outputs clearly energized -> CLOSED
+    if outputs_energized:
         return "CLOSED"
 
-    # Check if outputs are near zero -> OPEN
-    outputs_near_zero = ur < 1.0 and us < 1.0 and ut < 1.0
-    if outputs_near_zero:
+    # Physical state: outputs clearly de-energized with input present -> OPEN
+    if has_input and outputs_de_energized:
         return "OPEN"
 
-    # Check if input/output voltages match -> CLOSED
+    # Fallback: voltage match check (inputs match outputs = CLOSED)
     if voltages_match(hot):
         return "CLOSED"
 
+    # Default: 4-6 kV gap or any ambiguous state -> ERROR
     return "ERROR"

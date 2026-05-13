@@ -174,7 +174,6 @@ async def broadcast_telemetry(project: Project, rec: TelemetryRecord):
 
 async def mark_offline(project: Project, exc: Exception):
     """Broadcast device offline event."""
-    import contextlib
 
     from channels.layers import get_channel_layer
 

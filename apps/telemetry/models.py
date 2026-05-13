@@ -25,6 +25,8 @@ class TelemetryRecord(models.Model):
     q = models.FloatField(null=True, blank=True)
     breaker_close = models.BooleanField(null=True, blank=True)
     breaker_open = models.BooleanField(null=True, blank=True)
+    high_gas = models.BooleanField(null=True, blank=True)
+    high_temperature = models.BooleanField(null=True, blank=True)
 
     class Meta:
         indexes = [models.Index(fields=["project", "-cycle_timestamp"])]

@@ -65,7 +65,7 @@ class TestLabels:
         assert len(AI_LABELS) == 16
 
     def test_bi_labels_count(self):
-        assert len(BI_LABELS) == 28
+        assert len(BI_LABELS) == 30
 
     def test_f_abc_label(self):
         assert AI_LABELS[2010] == "F_ABC"
@@ -89,7 +89,8 @@ class TestDerivedStatus:
         }
         assert compute_derived_status(hot) == "CLOSED"
 
-    def test_closed_voltage_mismatch_with_high_outputs(self):
+    def test_open_voltage_mismatch_with_low_outputs(self):
+        # Outputs at 2 kV are below the 4 kV threshold -> OPEN
         hot = {
             "ua": 7.2,
             "ur": 2.0,
@@ -98,7 +99,7 @@ class TestDerivedStatus:
             "uc": 7.0,
             "ut": 2.0,
         }
-        assert compute_derived_status(hot) == "CLOSED"
+        assert compute_derived_status(hot) == "OPEN"
 
     def test_open_low_output(self):
         hot = {
@@ -109,14 +110,15 @@ class TestDerivedStatus:
         }
         assert compute_derived_status(hot) == "OPEN"
 
-    def test_partial_output_is_error(self):
+    def test_partial_output_below_threshold_is_open(self):
+        # ur=2.0 is below 4 kV threshold, so outputs are de-energized -> OPEN
         hot = {
             "ua": 7.2,
             "ur": 2.0,
             "us": 0.0,
             "ut": 0.0,
         }
-        assert compute_derived_status(hot) == "ERROR"
+        assert compute_derived_status(hot) == "OPEN"
 
     def test_no_input_voltages(self):
         hot = {"ur": 0.0, "us": 0.0, "ut": 0.0}
@@ -162,8 +164,12 @@ class TestExtractHotFields:
             {"name": "Ia", "value": 10.0, "quality_online": True, "type": "analog"},
             {"name": "Ib", "value": 5.0, "quality_online": False, "type": "analog"},
             {"name": "Breaker close", "value": True, "quality_online": True, "type": "binary"},
+            {"name": "High gas", "value": False, "quality_online": True, "type": "binary"},
+            {"name": "High temperature", "value": True, "quality_online": False, "type": "binary"},
         ]
         hot = extract_hot_fields(points)
         assert hot["ia"] == 10.0
         assert "ib" not in hot
         assert hot["breaker_close"] is True
+        assert hot["high_gas"] is False
+        assert "high_temperature" not in hot
