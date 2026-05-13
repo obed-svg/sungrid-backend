@@ -209,6 +209,10 @@ def maneuver_view(request, project_id):
             post_snapshot = TelemetryRecordSerializer(new_record).data
 
         # 8. Write ManeuverLog
+        # Verify the action actually worked: CLOSE -> CLOSED, TRIP -> OPEN
+        expected_post = {"CLOSE": "CLOSED", "TRIP": "OPEN"}[action]
+        result = "success" if post_status == expected_post else "fail_verify"
+
         log = ManeuverLog.objects.create(
             user=request.user,
             project=project,
@@ -217,7 +221,7 @@ def maneuver_view(request, project_id):
             pre_snapshot=pre_snapshot,
             post_status=post_status,
             post_snapshot=post_snapshot,
-            result="success" if post_status != "ERROR" else "fail_verify",
+            result=result,
             tx_frame=frame.hex().upper(),
             rx_frame=rx_frame.hex().upper() if rx_frame else "",
         )

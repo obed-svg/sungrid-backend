@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential libsqlite3-dev iputils-ping \
+        build-essential libsqlite3-dev sqlite3 iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g 1000 sungrid && useradd -u 1000 -g 1000 -m -s /bin/bash sungrid
