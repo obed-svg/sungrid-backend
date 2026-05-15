@@ -269,6 +269,9 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     value = struct.unpack("<f", app[i + 1 : i + 5])[0]
                     i += 5
                     idx = start + j
+                    if idx in (2012, 2013, 2015):
+                        value *= 1000
+                    value = round(value, 3)
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
                     _change_counts[idx] = _change_counts.get(idx, 0)
                     if idx in _last_values and _last_values[idx] != value:
@@ -295,6 +298,9 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     value = struct.unpack("<h", app[i + 1 : i + 3])[0]
                     i += 3
                     idx = start + j
+                    if idx in (2012, 2013, 2015):
+                        value *= 1000
+                    value = round(float(value), 3)
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
                     _change_counts[idx] = _change_counts.get(idx, 0)
                     if idx in _last_values and _last_values[idx] != value:
@@ -303,7 +309,7 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     points.append(
                         {
                             "name": AI_LABELS.get(idx, f"Analog_{idx}"),
-                            "value": float(value),
+                            "value": value,
                             "timestamp": rx_time,
                             "quality_online": bool(flag & 0x01),
                             "id": idx,
@@ -358,6 +364,9 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     value = struct.unpack("<f", app[i + 1 : i + 5])[0]
                     i += 5
                     idx = start + j
+                    if idx in (2012, 2013, 2015):
+                        value *= 1000
+                    value = round(value, 3)
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
                     _change_counts[idx] = _change_counts.get(idx, 0)
                     if idx in _last_values and _last_values[idx] != value:
@@ -384,6 +393,9 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     value = struct.unpack("<h", app[i + 1 : i + 3])[0]
                     i += 3
                     idx = start + j
+                    if idx in (2012, 2013, 2015):
+                        value *= 1000
+                    value = round(float(value), 3)
                     _update_counts[idx] = _update_counts.get(idx, 0) + 1
                     _change_counts[idx] = _change_counts.get(idx, 0)
                     if idx in _last_values and _last_values[idx] != value:
@@ -392,7 +404,7 @@ def parse_response(data: bytes, rx_time: datetime) -> list[dict]:
                     points.append(
                         {
                             "name": AI_LABELS.get(idx, f"Analog_{idx}"),
-                            "value": float(value),
+                            "value": value,
                             "timestamp": rx_time,
                             "quality_online": bool(flag & 0x01),
                             "id": idx,
